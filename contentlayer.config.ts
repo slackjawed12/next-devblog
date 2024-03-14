@@ -29,16 +29,16 @@ export const Post = defineDocumentType(() => ({
       required: true,
     },
   },
-  // computedFields: {
-  //   url: {
-  //     type: "string",
-  //     resolve: (doc) => `/posts/${doc._raw.flattenedPath}`,
-  //   },
-  // },
+  computedFields: {
+    url: {
+      type: "string",
+      resolve: (doc) => `/posts/${doc._raw.flattenedPath}`,
+    },
+  },
 }));
 
 const contentSource = makeSource({
-  contentDirPath: "posts",
+  contentDirPath: "./src/posts",
   documentTypes: [Post],
   // mdx: {
   //   remarkPlugins: [],
