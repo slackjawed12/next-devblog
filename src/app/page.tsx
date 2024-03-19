@@ -18,12 +18,12 @@ function GlobalNavigation() {
 }
 
 function RecentPosts() {
-  console.log(allPosts);
+  const copiedPost = allPosts.slice();
   return (
     <div className="flex-1">
       <text className="text-center">최근 게시물</text>
-      {allPosts
-        .toSorted((o1, o2) => compareDesc(o1.createdAt, o2.createdAt))
+      {copiedPost
+        .sort((o1, o2) => compareDesc(o1.createdAt, o2.createdAt))
         .map((post, i) => {
           return <PostItem key={i} post={post} />;
         })}
