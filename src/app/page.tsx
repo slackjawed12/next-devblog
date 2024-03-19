@@ -18,6 +18,7 @@ function GlobalNavigation() {
 }
 
 function RecentPosts() {
+  console.log(allPosts);
   return (
     <div className="flex-1">
       <text className="text-center">최근 게시물</text>
