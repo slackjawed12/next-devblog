@@ -1,7 +1,7 @@
 // contentlayer.config.ts
 import { defineDocumentType, makeSource } from "contentlayer/source-files";
-import highlight from "rehype-highlight";
-import rehypePrettyCode from "rehype-pretty-code";
+import rehypeKatex from "rehype-katex";
+import remarkMath from "remark-math";
 
 export const Post = defineDocumentType(() => ({
   name: "Post",
@@ -44,25 +44,12 @@ export const Post = defineDocumentType(() => ({
   },
 }));
 
-const contentSource = makeSource({
+export default makeSource({
   contentDirPath: "./src/posts",
   documentTypes: [Post],
   mdx: {
-    remarkPlugins: [],
-    rehypePlugins: [
-      [
-        //TODO: type error fix
-        //@ts-ignore
-        rehypePrettyCode,
-        {
-          theme: "github-dark",
-        },
-      ],
-      //TODO: type error fix
-      //@ts-ignore
-      highlight,
-    ],
+    remarkPlugins: [remarkMath],
+    //@ts-ignore
+    rehypePlugins: [rehypeKatex],
   },
 });
-
-export default contentSource;
