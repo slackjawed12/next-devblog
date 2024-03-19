@@ -51,11 +51,15 @@ const contentSource = makeSource({
     remarkPlugins: [],
     rehypePlugins: [
       [
+        //TODO: type error fix
+        //@ts-ignore
         rehypePrettyCode,
         {
           theme: "github-dark",
         },
       ],
+      //TODO: type error fix
+      //@ts-ignore
       highlight,
     ],
   },
