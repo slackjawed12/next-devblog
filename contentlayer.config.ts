@@ -20,6 +20,13 @@ export const Post = defineDocumentType(() => ({
       type: "string",
       required: true,
     },
+    tag: {
+      type: "list",
+      of: {
+        type: "string",
+      },
+      required: true,
+    },
     thumbnail: {
       type: "string",
       required: false,
@@ -40,18 +47,18 @@ export const Post = defineDocumentType(() => ({
 const contentSource = makeSource({
   contentDirPath: "./src/posts",
   documentTypes: [Post],
-  // mdx: {
-  //   remarkPlugins: [],
-  //   rehypePlugins: [
-  //     [
-  //       rehypePrettyCode,
-  //       {
-  //         theme: "github-dark",
-  //       },
-  //     ],
-  //     highlight,
-  //   ],
-  // },
+  mdx: {
+    remarkPlugins: [],
+    rehypePlugins: [
+      [
+        rehypePrettyCode,
+        {
+          theme: "github-dark",
+        },
+      ],
+      highlight,
+    ],
+  },
 });
 
 export default contentSource;
