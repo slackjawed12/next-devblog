@@ -61,8 +61,8 @@ class Agent {
 }
 ```
 
-이제 State들을 정의해보자. MoveState는 handle 메서드가 있는 interface
-로 정의하고, MoveState의 구현체들은 handle 메서드를 재정의한다. handle 메서드는 각 state에서의 동작과 다음 상태를 반환한다. 예를 들어, 왼쪽으로 움직이는 상태를 나타내는 LeftState 객체는 다음처럼 구현할 수 있다.
+이제 State들을 정의해보자. MoveState는 handle 메서드가 있는 interface로 정의하고, MoveState의 구현체들은 handle 메서드를 재정의한다.
+handle 메서드는 각 state에서의 동작과 다음 상태를 반환한다. 예를 들어, 왼쪽으로 움직이는 상태를 나타내는 LeftState 객체는 다음처럼 구현할 수 있다.
 
 ```javascript
 interface MoveState {
