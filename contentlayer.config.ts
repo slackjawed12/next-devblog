@@ -2,6 +2,7 @@
 import { defineDocumentType, makeSource } from "contentlayer/source-files";
 import rehypeKatex from "rehype-katex";
 import rehypePrettyCode from "rehype-pretty-code";
+import rehypePrism from "rehype-prism-plus";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
@@ -52,6 +53,6 @@ export default makeSource({
   mdx: {
     remarkPlugins: [remarkMath, remarkGfm],
     //@ts-ignore
-    rehypePlugins: [rehypeKatex, rehypePrettyCode],
+    rehypePlugins: [rehypeKatex, rehypePrettyCode, rehypePrism],
   },
 });
