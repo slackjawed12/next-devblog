@@ -3,6 +3,7 @@ import { defineDocumentType, makeSource } from "contentlayer/source-files";
 import rehypeKatex from "rehype-katex";
 import rehypePrettyCode from "rehype-pretty-code";
 import rehypePrism from "rehype-prism-plus";
+import rehypeExternalLinks from "rehype-external-links";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
@@ -52,7 +53,20 @@ export default makeSource({
   documentTypes: [Post],
   mdx: {
     remarkPlugins: [remarkMath, remarkGfm],
-    //@ts-ignore
-    rehypePlugins: [rehypeKatex, rehypePrettyCode, rehypePrism],
+    rehypePlugins: [
+      //@ts-ignore
+      rehypeKatex,
+      //@ts-ignore
+      rehypePrettyCode,
+      //@ts-ignore
+      rehypePrism,
+      [
+        rehypeExternalLinks,
+        {
+          target: "_blank",
+          rel: ["noopener noreferrer"],
+        },
+      ],
+    ],
   },
 });
