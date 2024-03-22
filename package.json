@@ -23,7 +23,6 @@
     "rehype-highlight": "^7.0.0",
     "rehype-katex": "^7.0.0",
     "rehype-pretty-code": "^0.13.0",
-    "remark-gfm": "^4.0.0",
     "remark-math": "^6.0.0",
     "shiki": "^1.1.7"
   },
@@ -38,6 +37,7 @@
     "postcss": "^8",
     "rehype-external-links": "^3.0.0",
     "rehype-prism-plus": "^2.0.0",
+    "remark-gfm": "3.0.1",
     "tailwindcss": "^3.3.0",
     "typescript": "^5"
   }
