@@ -33,12 +33,14 @@ function RecentPosts() {
 
 function PostItem({ post }: { post: Post }) {
   return (
-    <Link href={post.url} className="bg-blue-500">
-      <div className="flex items-center justify-between">
-        <h2 className="font-bold py-2 text-xl">{post.title}</h2>
-        <text>{post.createdAt.split("T")[0]}</text>
+    <Link href={post.url}>
+      <div className="my-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold py-2 text-xl">{post.title}</h2>
+          <text>{post.createdAt.split("T")[0]}</text>
+        </div>
+        <text>{post.description}</text>
       </div>
-      <text>{post.description}</text>
     </Link>
   );
 }
