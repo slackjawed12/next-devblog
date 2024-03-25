@@ -5,16 +5,16 @@ import Link from "next/link";
 export default function HomePage() {
   return (
     <main>
-      <div className="flex justify-center align-middle p-10">
-        <GlobalNavigation />
+      <div className="flex justify-between">
+        <GlobalSideNavigation />
         <RecentPosts />
       </div>
     </main>
   );
 }
 
-function GlobalNavigation() {
-  return <div className="p-8">카테고리</div>;
+function GlobalSideNavigation() {
+  return <div className="p-2 hidden lg:flex">카테고리</div>;
 }
 
 function RecentPosts() {

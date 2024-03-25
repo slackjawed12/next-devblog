@@ -5,6 +5,7 @@ import { Header } from "../components/Header";
 
 import "../styles/globals.css";
 import "katex/dist/katex.min.css";
+import { Footer } from "src/components/Footer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,9 +21,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body
+        className={`${inter.className} mx-auto max-w-3xl px-6 lg:max-w-6xl lg:px-8`}
+      >
         <Header />
         <Providers>{children}</Providers>
+        <Footer />
       </body>
     </html>
   );
