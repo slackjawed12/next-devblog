@@ -1,7 +1,7 @@
 export default function LinkedinIcon({
   className,
-  width = 16,
-  height = 16,
+  width = 18,
+  height = 18,
   ...props
 }: React.ComponentProps<"svg">) {
   return (
