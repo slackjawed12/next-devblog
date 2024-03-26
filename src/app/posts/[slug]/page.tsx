@@ -11,7 +11,7 @@ export const generateMetadata = ({ params }: { params: { slug: string } }) => {
   return { title: post?.title };
 };
 
-const PostLayout = ({ params }: { params: { slug: string } }) => {
+export function PostLayout({ params }: { params: { slug: string } }) {
   const post = allPosts.find((post) => post._raw.flattenedPath === params.slug);
   const Content = getMDXComponent(post?.body?.code ?? "");
 
@@ -26,6 +26,6 @@ const PostLayout = ({ params }: { params: { slug: string } }) => {
       <Content />
     </article>
   );
-};
+}
 
 export default PostLayout;
