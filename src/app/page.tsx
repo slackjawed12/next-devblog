@@ -1,6 +1,7 @@
 import { Post, allPosts } from "contentlayer/generated";
 import { compareDesc } from "date-fns";
 import Link from "next/link";
+import { GlobalSideNavigation } from "src/components/GlobalSideNavigation";
 
 export default function HomePage() {
   return (
@@ -13,15 +14,11 @@ export default function HomePage() {
   );
 }
 
-function GlobalSideNavigation() {
-  return <div className="p-2 hidden lg:flex">카테고리</div>;
-}
-
 function RecentPosts() {
   const copiedPost = allPosts.slice();
   return (
     <div className="flex-1">
-      <text className="text-center">최근 게시물</text>
+      <div className="text-center">최근 게시물</div>
       {copiedPost
         .sort((o1, o2) => compareDesc(o1.createdAt, o2.createdAt))
         .map((post, i) => {
@@ -34,12 +31,14 @@ function RecentPosts() {
 function PostItem({ post }: { post: Post }) {
   return (
     <Link href={post.url}>
-      <div className="my-4">
+      <div className="my-10">
         <div className="flex items-center justify-between">
-          <h2 className="font-bold py-2 text-xl">{post.title}</h2>
-          <text>{post.createdAt.split("T")[0]}</text>
+          <h2 className="font-bold py-2 text-lg md:text-xl">{post.title}</h2>
+          <text className="text-sm md:text-lg">
+            {post.createdAt.split("T")[0]}
+          </text>
         </div>
-        <text>{post.description}</text>
+        <text className="text-sm md:text-lg">{post.description}</text>
       </div>
     </Link>
   );

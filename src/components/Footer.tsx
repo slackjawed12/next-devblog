@@ -11,7 +11,7 @@ export function Footer() {
 
   return (
     <footer className="py-5">
-      <div className="flex flex-row-reverse space-x-2 space-x-reverse mb-1">
+      <div className="flex flex-row space-x-2 mb-1">
         <a href="https://github.com/slackjawed12">
           <GithubIcon />
         </a>
@@ -19,7 +19,7 @@ export function Footer() {
           <LinkedinIcon />
         </a>
       </div>
-      <div className="flex justify-end">
+      <div className="flex justify-start">
         <Link href={"/"}>© {yearRange()} Lee MinJae blog&nbsp;</Link>
         <span>Powered By&nbsp;</span>
         <span>Next.js</span>
