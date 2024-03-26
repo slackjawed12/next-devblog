@@ -10,7 +10,7 @@ export function Footer() {
   };
 
   return (
-    <footer className="py-5">
+    <footer className="py-5 relative translate-y-full">
       <div className="flex flex-row space-x-2 mb-1">
         <a href="https://github.com/slackjawed12">
           <GithubIcon />
