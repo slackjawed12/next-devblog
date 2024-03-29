@@ -1,6 +1,7 @@
 import { format, parseISO } from "date-fns";
 import { allPosts } from "contentlayer/generated";
 import { getMDXComponent } from "next-contentlayer/hooks";
+import Giscus from "src/components/Giscus";
 
 export const generateStaticParams = async () => {
   return allPosts.map((post) => ({ slug: post._raw.flattenedPath }));
@@ -16,14 +17,15 @@ export default function PostLayout({ params }: { params: any }) {
   const Content = getMDXComponent(post?.body?.code ?? "");
 
   return (
-    <article className="pt-8 mx-auto max-w-3xl prose prose-invert">
+    <article className="pt-8 mx-auto max-w-3xl prose prose-sm prose-stone prose-invert sm:prose-base lg:prose-lg">
       <div className="mb-8 text-center">
-        <time dateTime={post?.createdAt} className="mb-5 text-s text-gray-500">
+        <time dateTime={post?.createdAt}>
           {format(parseISO(post?.createdAt ?? "2024-03-13"), "LLLL d, yyyy")}
         </time>
-        <h1 className="text-2xl font-bold">{post?.title}</h1>
+        <h1>{post?.title}</h1>
       </div>
       <Content />
+      <Giscus />
     </article>
   );
 }

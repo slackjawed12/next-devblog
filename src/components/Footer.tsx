@@ -3,7 +3,7 @@ import { BLOG_START_YEAR } from "src/config/constants";
 import GithubIcon from "./icons/GithubIcon";
 import LinkedinIcon from "./icons/LinkedinIcon";
 
-export function Footer() {
+export default function Footer() {
   const yearRange = () => {
     const currentYear = new Date().getFullYear();
     return `${BLOG_START_YEAR}-${currentYear}`;
@@ -20,9 +20,11 @@ export function Footer() {
         </a>
       </div>
       <div className="flex justify-start">
-        <Link href={"/"}>© {yearRange()} Lee MinJae blog&nbsp;</Link>
-        <span>Powered By&nbsp;</span>
-        <span>Next.js</span>
+        <Link href={"/"} className="text-sm sm:text-base">
+          © {yearRange()} Lee MinJae blog&nbsp;
+        </Link>
+        <span className="text-sm sm:text-base">Powered By&nbsp;</span>
+        <span className="text-sm sm:text-base">Next.js</span>
       </div>
     </footer>
   );

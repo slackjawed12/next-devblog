@@ -1,7 +1,7 @@
 import { Post, allPosts } from "contentlayer/generated";
 import { compareDesc } from "date-fns";
 import Link from "next/link";
-import { GlobalSideNavigation } from "src/components/GlobalSideNavigation";
+import GlobalSideNavigation from "src/components/GlobalSideNavigation";
 
 export default function HomePage() {
   return (
@@ -31,14 +31,14 @@ function RecentPosts() {
 function PostItem({ post }: { post: Post }) {
   return (
     <Link href={post.url}>
-      <div className="my-10">
-        <div className="flex items-center justify-between">
-          <h2 className="font-bold py-2 text-lg md:text-xl">{post.title}</h2>
-          <text className="text-sm md:text-lg">
-            {post.createdAt.split("T")[0]}
-          </text>
-        </div>
-        <text className="text-sm md:text-lg">{post.description}</text>
+      <div className="my-10 flex flex-col">
+        <h2 className="font-bold py-2 text-sm truncate md:text-xl">
+          {post.title}
+        </h2>
+        <text className="text-sm py-1 md:text-lg">{post.description}</text>
+        <text className="text-slate-400 text-xs py-1 md:text-sm">
+          {post.createdAt.split("T")[0]}
+        </text>
       </div>
     </Link>
   );
