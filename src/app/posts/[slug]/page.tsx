@@ -17,7 +17,7 @@ export default function PostLayout({ params }: { params: any }) {
   const Content = getMDXComponent(post?.body?.code ?? "");
 
   return (
-    <article className="pt-8 mx-auto max-w-3xl prose prose-sm prose-stone prose-invert sm:prose-base lg:prose-lg">
+    <article className="pt-8 mx-auto max-w-3xl prose prose-sm dark:prose-invert sm:prose-base lg:prose-lg">
       <div className="mb-8 text-center">
         <time dateTime={post?.createdAt}>
           {format(parseISO(post?.createdAt ?? "2024-03-13"), "LLLL d, yyyy")}
