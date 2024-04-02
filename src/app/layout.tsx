@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { Providers } from "./providers";
 import { Header } from "../components/Header";
+import { Providers } from "./providers";
 
-import "../styles/globals.css";
 import "katex/dist/katex.min.css";
 import Footer from "src/components/Footer";
-import Head from "next/head";
+import "../styles/globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,12 +24,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <Head>
-        <meta
-          name="naver-site-verification"
-          content="17edbe88d0eda099c70da8802de4604567027c70"
-        />
-      </Head>
       <body
         className={`${inter.className} mx-auto max-w-3xl px-6 min-h-full h-auto sm:max-w-6xl sm:px-8`}
       >
