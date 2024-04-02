@@ -13,6 +13,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Minjae Lee Blog",
   description: "It covers development stories, and technical stories.",
+  other: {
+    "naver-site-verification": "17edbe88d0eda099c70da8802de4604567027c70",
+  },
 };
 
 export default function RootLayout({
