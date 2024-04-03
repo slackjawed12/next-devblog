@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Header } from "../components/Header";
-import { Providers } from "./providers";
-
-import "katex/dist/katex.min.css";
 import Footer from "src/components/Footer";
+import "katex/dist/katex.min.css";
 import "../styles/globals.css";
+import { Providers } from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,7 +22,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${inter.className} mx-auto max-w-3xl px-6 min-h-full h-auto sm:max-w-6xl sm:px-8`}
       >

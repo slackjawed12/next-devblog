@@ -30,15 +30,15 @@ function RecentPosts() {
 
 function PostItem({ post }: { post: Post }) {
   return (
-    <Link href={post.url}>
+    <Link href={`/posts/${post.slug}`}>
       <div className="my-10 flex flex-col">
         <h2 className="font-bold py-2 text-sm truncate md:text-xl">
           {post.title}
         </h2>
-        <text className="text-sm py-1 md:text-lg">{post.description}</text>
-        <text className="text-slate-400 text-xs py-1 md:text-sm">
+        <span className="text-sm py-1 md:text-lg">{post.description}</span>
+        <span className="text-slate-400 text-xs py-1 md:text-sm">
           {post.createdAt.split("T")[0]}
-        </text>
+        </span>
       </div>
     </Link>
   );

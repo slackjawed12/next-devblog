@@ -1,7 +1,7 @@
 export default function PostPage() {
   return (
     <>
-      <text>게시물 화면 준비중입니다.</text>
+      <span>게시물 화면 준비중입니다.</span>
     </>
   );
 }
