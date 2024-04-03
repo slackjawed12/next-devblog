@@ -4,16 +4,21 @@ import { getMDXComponent } from "next-contentlayer/hooks";
 import Giscus from "src/components/Giscus";
 
 export const generateStaticParams = async () => {
-  return allPosts.map((post) => ({ slug: post._raw.flattenedPath }));
+  return allPosts.map((post) => ({ slug: post.slug.split("/") }));
 };
 
-export const generateMetadata = ({ params }: { params: any }) => {
-  const post = allPosts.find((post) => post._raw.flattenedPath === params.slug);
+export const generateMetadata = ({
+  params,
+}: {
+  params: { slug: string[] };
+}) => {
+  const post = allPosts.find((post) => post.slug === params.slug.join("/"));
   return { title: post?.title };
 };
 
-export default function PostLayout({ params }: { params: any }) {
-  const post = allPosts.find((post) => post._raw.flattenedPath === params.slug);
+export default function PostLayout({ params }: { params: { slug: string[] } }) {
+  const slugByParams = `${params.slug.join("/")}`;
+  const post = allPosts.find((post) => `${post.slug}` === slugByParams);
   const Content = getMDXComponent(post?.body?.code ?? "");
 
   return (

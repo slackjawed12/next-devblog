@@ -10,7 +10,7 @@ import remarkMath from "remark-math";
 export const Post = defineDocumentType(() => ({
   name: "Post",
   contentType: "mdx",
-  filePathPattern: `**/*.mdx`,
+  filePathPattern: "**/*.mdx",
   fields: {
     title: {
       type: "string",
@@ -41,9 +41,9 @@ export const Post = defineDocumentType(() => ({
     },
   },
   computedFields: {
-    url: {
+    slug: {
       type: "string",
-      resolve: (doc) => `/posts/${doc._raw.flattenedPath}`,
+      resolve: (doc) => `${doc._raw.flattenedPath}`,
     },
   },
 }));
