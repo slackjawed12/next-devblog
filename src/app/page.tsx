@@ -6,7 +6,7 @@ import GlobalSideNavigation from "src/components/GlobalSideNavigation";
 export default function HomePage() {
   return (
     <main>
-      <div className="flex justify-between">
+      <div className="flex">
         <GlobalSideNavigation />
         <RecentPosts />
       </div>
