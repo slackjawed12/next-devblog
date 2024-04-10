@@ -10,7 +10,6 @@ export const classifyByCategory = (posts: Post[]) => {
   const store = posts.reduce((prev, cur) => {
     const tokens = cur.slug.split("/");
     const categoryByPath = tokens.slice(0, tokens.length - 1);
-    console.log(categoryByPath);
     if (categoryByPath.length < 1) {
       const unclassifiedPosts = prev.get("unclassified");
 
@@ -25,7 +24,7 @@ export const classifyByCategory = (posts: Post[]) => {
     const before = prev.get(key);
     prev.set(categoryByPath.join("/"), before ? [...before, cur] : [cur]);
     return prev;
-  }, new Map());
+  }, new Map<string, Post[]>());
 
   return Array.from(store);
 };
