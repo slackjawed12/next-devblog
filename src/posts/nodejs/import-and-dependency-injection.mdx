@@ -33,31 +33,32 @@ ApplicationContext();
 
 // app.js - entry point of application
 console.log("application launch");
-// load all component
-const Classes = require("./module");
+const instances = require("./module"); // load all component
 
 function ApplicationContext() {
-  const classInstance = Classes.Client;
-  console.log(classInstance.funcA());
+  const clientInstance = instances.client;
+  console.log(clientInstance.funcA());
 }
 
 module.exports = { ApplicationContext };
 ```
 
 &nbsp; &nbsp; 여기서 서버의 building block인 컴포넌트를 불러오는 부분을 살펴보겠습니다.
-module.js는 컴포넌트들을 인스턴스(싱글톤 객체)로 만들어주는 역할을 합니다.
+module.js는 컴포넌트들을 인스턴스(싱글톤 객체 역할)로 만들어주는 역할을 합니다.
 client는 server의 메서드를 사용합니다. 즉, client는 server에 의존합니다.
 
 ```javascript
 // module.js
-console.log("server modules loaded");
-const _Server = require("./server");
-const _Client = require("./client");
-const Server = new _Server();
-const Client = new _Client();
+const Server = require("./server");
+console.log("module.js load server class :", Server);
+const Client = require("./client");
+
+const server = new Server();
+const client = new Client();
+
 module.exports = {
-  Client,
-  Server,
+  client,
+  server,
 };
 
 // server.js
@@ -76,43 +77,62 @@ class Server {
 module.exports = Server;
 
 // client.js
-const { Server } = require("./module");
+const { server } = require("./module");
+console.log("client load server instance :", server);
 class Client {
   constructor() {
     console.log("client instantiate");
   }
   funcA() {
-    return Server.funcB();
+    return server.funcB();
   }
 }
 
 module.exports = Client;
+
 ```
 
 &nbsp; &nbsp; 여기서 출력 결과는 다음과 같습니다. 
 
-```bash
+```text
 application launch
-sevice module loaded
+modules loaded
+module.js load server class : [class Server]
+client load server instance : undefined
 server instantiate
 client instantiate
-/path/client.js:8
+/project-path/client.js:8
     return Server.funcB();
                   ^
 
 TypeError: Cannot read properties of undefined (reading 'funcB')
+    at Client.funcA (/project-path/client.js:8:19)
+    at ApplicationContext (/project-path/module-test/app.js:7:29)
+    at Object.<anonymous> (/project-path/module-test/index.js:3:1)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Module.load (node:internal/modules/cjs/loader:1203:32)
+    at Module._load (node:internal/modules/cjs/loader:1019:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
+    at node:internal/main/run_main_module:28:49
 ```
 
-&nbsp; &nbsp; 즉, 해당 오류는 클라이언트가 로드한 서버 인스턴스는 메서드 호출시점에 undefined라는 것을 말해줍니다.
-이는 module.js에서 클라이언트를 로드하는 과정에서 생길 수 밖에 없었던 오류입니다.
-module.js와 client.js는 **순환의존 관계**이기 때문입니다.
+&nbsp; &nbsp; 테스트 결과, 클라이언트가 module.js에서 직접 로드한 서버 인스턴스는 로드한 시점에 undefined입니다.
+이는 module.js와 client.js가 **순환의존 관계**이기 때문입니다.
+정확히 말하면, commonjs에서 순환의존성을 처리하는 방식 때문입니다.
 즉, module은 client 인스턴스를 만들고, client는 module의 서버 인스턴스를 참조합니다.
-그런데 서버 인스턴스는 아직 module 스크립트에서 인스턴스가 되기 전입니다.
-이 경우 commonjs에서 순환의존성이 있을 경우 초기화되기 전 객체는 undefined로 처리합니다.
+그런데 module.js가 export하는 서버 인스턴스는 아직 module.js 스크립트에서 인스턴스가 되기 전입니다.
+따라서 client.js는 undefined에서 함수를 호출하므로 오류가 발생하는 것입니다.
 
 ### 해결책
-&nbsp; &nbsp; 먼저 모듈 간 순환의존성이 발생하는 부분을 찾으려면 madge 패키지같은 모듈의존성 시각화 도구를 사용해주면 좋습니다.
-이런 종류의 에러는 발생한 후에도 원인을 찾기 힘들고, 발생 전에도 예측하기 힘들기 때문입니다.
+&nbsp; &nbsp; 이런 순환의존성에 의한 문제는 에러 발생 시점에 원인을 찾기 힘들고, 
+에러 발생 전에도 조심하지 않으면 다시 발생할 수 있기 때문에 해결 방식을 다각도로 접근해야 합니다.
+
+1. 현재 코드베이스에서 순환의존성 부분을 발견
+2. 1에서 발견된 순환의존성을 해소
+3. 개발팀에서 순환의존성이 발생하지 않도록 예방
+
+먼저 모듈 간 순환의존성이 발생하는 부분을 찾으려면 madge 패키지같은 모듈의존성 시각화 도구를 사용해주면 좋습니다.
 아래 명령어로 magde를 실행해주면 순환의존성을 찾아줍니다.
 
 ```bash
@@ -121,19 +141,19 @@ $ npx madge --circular [path]
 $ npx madge --ts-config ./tsconfig.json --circular [path]
 ```
 
-&nbsp; &nbsp; 이제 순환 의존성을 깨는 방법 중 하나는, 두 의존성이 클래스인 경우 생성자로 의존성을 주입시키는 것입니다.
+&nbsp; &nbsp; 순환 의존성을 해소하는 방법 중 하나는, 두 의존성이 클래스인 경우 생성자로 의존성을 주입시키는 것입니다.
 
 ```javascript
 // module.js
-console.log("server modules loaded");
-const _Server = require("./server");
-const _Client = require("./client");
-const Server = new _Server();
+console.log("modules loaded");
+const Server = require("./server");
+const Client = require("./client");
+const server = new Server();
 // dependency injection
-const Client = new _Client(Server);
+const client = new Client(server);
 module.exports = {
-  Client,
-  Server,
+  server,
+  client
 };
 
 // server.js
@@ -152,7 +172,8 @@ class Server {
 module.exports = Server;
 
 // client.js
-const { Server } = require("./module");
+// const { server } = require("./module");
+// console.log("client load server instance :", server);
 class Client {
   server;
   constructor(server) {
@@ -168,9 +189,12 @@ class Client {
 module.exports = Client;
 ```
 
+&nbsp; &nbsp; 생성자로 서버 인스턴스를 할당할 것이므로, Client 클래스는 직접적으로 서버 인스턴스를 불러오지 않습니다. 
+생성자에만 의존성을 명시하면 됩니다. 만약 TypeScript라면 생성자에 타입을 명시해주어야 할텐데, 이 때 불러오는 서버 클래스 타입은
+server.ts에서 불러오게 될 것입니다. 그러므로 타입을 명시하더라도 module.ts와 client.ts의 순환의존성은 없습니다.
 &nbsp; &nbsp; 사실 가장 바람직한 해결책은 스프링같은 DI 컨테이너를 사용하는 것입니다.
 매번 개발자가 이걸 신경쓰면서 의존성을 관리하면 레이어를 분리하는 것이 더 큰 비용이기 때문입니다.
-JS 쪽에서는 nest.js를 사용하면 되겠습니다.
+JS 쪽에서는 nest.js를 사용하면 됩니다.
 
 
 ### References
