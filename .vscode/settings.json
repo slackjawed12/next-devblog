@@ -1,4 +1,13 @@
 {
   "css.lint.unknownAtRules": "ignore",
-  "prettier.configPath": "prettier.config.js"
+  "prettier.configPath": "prettier.config.js",
+  "[mdx]": {
+    "editor.quickSuggestions": {
+      "other": "off",
+      "comments": "off",
+      "strings": "off"
+    },
+    "editor.acceptSuggestionOnEnter": "off",
+    "editor.suggestOnTriggerCharacters": false
+  }
 }
