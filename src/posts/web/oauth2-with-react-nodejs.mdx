@@ -1,0 +1,252 @@
+---
+title: "OAuth2 기반 구글 소셜 로그인 구현하기 with React, Node.js"
+description: 구글 소셜 로그인을 구현하는 과정을 정리했습니다.
+category: Web
+tag: [OAuth2, React, Node.js]
+createdAt: 2024-05-29
+---
+
+### Overview
+
+&nbsp; &nbsp; 이번에 소셜 로그인 기능을 구현하면서 모호하게 알고있었던 OAuth2 과정을 좀 더 알게되었습니다.
+OAuth2가 무엇인지 간단히 살펴보고, 제가 구현했던 방식을 소개하겠습니다.
+
+### OAuth2
+&nbsp; &nbsp; OAuth2는 리소스 사용자에게 리소스를 제공하는 과정에 관한 일련의 개방형 표준입니다.
+먼저 OAuth2 표준에서 정의하는 역할들(roles)부터 살펴보겠습니다.
+
+1. Resource Owner
+
+    자원을 소유하고 있는 주체입니다. 여기서 말하는 자원은, 소셜로그인 맥락에서 유저의 이름, 이메일 등 유저를 식별하는 인증정보를 말합니다.
+
+2. Client
+
+    자원을 사용하려는 사용자입니다. 소셜로그인에서는 유저의 인증정보를 사용하려는 구성요소이므로, 우리가 개발하는 애플리케이션에 해당합니다.
+
+3. Authorization Server
+
+    자원 사용의 권한과 관련된 서비스를 제공하는 서버입니다. 앞으로 살펴보겠지만, 인증 코드를 주거나 액세스 토큰을 발급하는 역할을 맡습니다.
+    이는 소셜로그인 맥락과는 무관한 인증 서버의 역할입니다. 또한 Client가 Resource Server에 자원을 요청할 때, 토큰의 유효성을 검증하는 역할을 맡기도 합니다. 
+
+4. Resource Server
+
+    Resource Owner의 Resource를 저장하고 있는 서비스입니다. Client가 접근 토큰을 가지고 특정 자원을 요청하면 제공하는 서버입니다.
+
+&nbsp; &nbsp; 이전의 client server 인증방식에서는 2번과 4번만 있었습니다.
+즉, Resource Owner에 해당하는 사용자가 서드파티 애플리케이션인 client에 자신의 자격증명(ex. 비밀번호)을 저장하고,
+client가 Resource Server에 원하는 자원을 요청하는 방식이었습니다.
+이 모델에서는 패스워드 인증 방식이 갖고 있는 보안 취약점을 해결하지 못했고,
+client가 Resource Owner의 모든 Resource에 접근할 수 있게 되어 특정 리소스에 접근을 제한하지 못한다는 문제가 있었습니다.<br/>
+&nbsp; &nbsp; OAuth2.0은 client의 역할을 Resource Owner와 client로 나누어 기존 인증방식의 취약점을 해결합니다. 
+그리고 Resource Server에서 Authorization Server 계층을 분리해서 제한적인 리소스 접근 방식을 도입해서,
+client가 필요 이상으로 자원에 접근하지 못하도록 합니다. <br/>
+
+
+### OAuth2의 흐름
+
+
+&nbsp; &nbsp; 공식문서에서 설명하는 OAuth2의 흐름은 아래와 같습니다.
+
+```text
+     +--------+                               +---------------+
+     |        |--(A)- Authorization Request ->|   Resource    |
+     |        |                               |     Owner     |
+     |        |<-(B)-- Authorization Grant ---|               |
+     |        |                               +---------------+
+     |        |
+     |        |                               +---------------+
+     |        |--(C)-- Authorization Grant -->| Authorization |
+     | Client |                               |     Server    |
+     |        |<-(D)----- Access Token -------|               |
+     |        |                               +---------------+
+     |        |
+     |        |                               +---------------+
+     |        |--(E)----- Access Token ------>|    Resource   |
+     |        |                               |     Server    |
+     |        |<-(F)--- Protected Resource ---|               |
+     +--------+                               +---------------+
+```
+
+&nbsp; &nbsp; 복잡해 보이지만 하나하나 뜯어보면 간단합니다. 표를 기준으로 OAuth2의 플로우는 아래와 같이 이루어집니다.
+
+1. Client가 Resource Owner에게 인증 요청
+
+    표에서는 Client가 직접 Resource Owner에게 요청하는 것처럼 표현되어 있지만,
+    일반적으로 소셜 로그인 맥락에서는 클라이언트가 Authorization Server로부터 인증 url을 받고, 간접적으로 Resource Owner에게 인증을 요청하는 방식으로 이루어집니다.
+    즉, Resource Owner가 '구글로 로그인'을 눌렀을 때, Client가 구글 인증서버에 인증 url을 요청하고,
+    받은 인증 url로 Resource Owner를 리다이렉션하는 것으로 대응시킬 수 있습니다.
+
+2. Resource Owner가 Client에 권한 부여
+
+    Client가 필요로 하는 자원을 제공하는 것에 Resource Owner가 동의하고, Authorization을 제공하는 과정입니다.
+    사용자가 구글로 로그인 한 뒤, 요청하는 리소스의 범위(scope)의 리소스를 제공하는 것에 동의하는 과정으로 볼 수 있습니다.<br/>
+    이 때 Authorization Grant의 결과로 Authorization Code를 반환하면 이를 Authorization Code 방식,
+    Code 없이 즉시 Access Token을 발급받으면 Implicit(암묵적) 방식이라고 합니다. 
+    이 외에도 Resource Owner Password Credentials, Client Credentials 방식이 있습니다.<br/>
+    보안 상 대부분 OAuth2 문서들에서는 Authorization Code 방식을 권장하는 편입니다.
+
+3. Client가 Authorization Server에 Token 요청
+
+    이전 단계에서 받은 Authorization Code를 이용해서, 인증 서버에 자원에 접근할 때 사용할 접근 토큰을 요청합니다.
+
+4. Authorization Server가 Client에 Access Token 발급
+
+    인증 서버에서 코드 검증을 마치고, 정상적인 코드 및 요청이라면 수명이 짧은 Access Token과 Refresh Token을 클라이언트에 반환합니다.
+    클라이언트는 이 Access Token으로 처음 scope에 명시된 자원에 한해 Resource Owner의 자원에 접근할 수 있습니다.
+
+5. Client가 Resource Server에 자원 요청
+
+    애플리케이션이 이제 Access Token을 갖고 구글 사용자 서버에 유저 정보를 요청합니다.
+
+6. Resource Server가 Resource Owner의 자원을 Client에 반환
+
+    토큰이 만료되지 않았고, 정상적인 요청이라면 구글 서버는 애플리케이션에 사용자 정보를 반환합니다.
+    소셜 로그인 맥락에서는 구글에 가입한 유저 정보를 애플리케이션에 제공하는 과정으로 보시면 됩니다.
+    유저 정보를 정상적으로 조회했다면, 기존 유저라면 바로 로그인을 진행시키거나, 회원가입을 자동으로 진행하는 등 비즈니스 로직을 처리하면 됩니다.
+
+&nbsp; &nbsp; 사용자 입장에서는 간단해보였던 소셜 로그인 과정이, 보이지 않는 측면에서는 이렇게 긴 플로우를 통해 이루어지고 있었습니다.
+각 과정의 세부 구현 사항을 살펴보겠습니다.
+
+### Google에 클라이언트 등록하기
+
+&nbsp; &nbsp; 본격적인 소셜 로그인을 구현하기 전에, 
+먼저 사용자의 구글 자원을 사용하기 위해 구글 클라우드의 API 서비스에 클라이언트를 등록해야 합니다.
+google cloud의 [API 및 서비스](https://console.cloud.google.com/apis/dashboard)대시보드에 접속합니다.<br/>
+
+1. OAuth 동의화면 구성
+
+    OAuth2.0 클라이언트를 등록하려면 OAuth 동의화면을 구성해야 합니다. 
+    External로 설정하고 앱 이름은 진행하는 프로젝트의 이름(ex. MySampleProject)을 입력합니다.
+
+2. 범위 설정
+    
+    사용자로부터 액세스 할 수 있는 데이터의 범위를 설정합니다.
+    소셜 로그인 맥락으로 유저 정보를 사용할 것이므로 openid, email, profile을 선택합니다.
+
+3. 테스트 사용자 추가
+
+    테스트 상태인 도메인이면 테스트 유저로만 OAuth 과정을 진행할 수 있습니다.
+    테스트 용도의 이메일을 하나 추가해주면 됩니다.
+
+4. OAuth Client ID 등록
+
+    다시 API 및 서비스 대시보드로 돌아와서, '사용자 인증 정보 만들기'에서 OAuth Client ID를 선택합니다.
+    애플리케이션 유형은 웹 애플리케이션을 선택합니다. 승인된 JavaScript 원본은 프론트엔드 코드가 실행되는 도메인을 입력하면 됩니다.
+    로컬 환경에서 React로 개발할 때는 일반적으로 http://localhost:3000 을 입력하면 됩니다.<br/>
+    그 다음으로 승인된 리디렉션 URI가 중요한데, 여기에 Resource Owner가 구글 로그인과 인증 허가를 완료하고 나서
+    사용자가 어느 URI로 돌아갈지를 명시합니다. 
+    여기서 리디렉션 URI를 웹 프론트나 백엔드 둘 중 하나를 넣으면 됩니다.
+    결론부터 말하면 어디에 넣든지 상관없습니다. 나중에 구현 세부사항이 조금 더 바뀌는 것 뿐입니다.
+    편의상 백엔드 uri에 콜백을 넣는다고 가정하겠습니다.
+    일단 컨벤션으로 보통 oauth/callback과 같은 엔드포인트를 많이 사용합니다. 
+    Node.js 백엔드 서버는 8080 포트에 실행시켰다고 가정하고, 콜백 uri는
+    http://localhost:8080/google/oauth2/callback 으로 하겠습니다.
+
+5. OAuth 클라이언트 정보 저장
+
+    리디렉션 uri까지 입력을 마무리하면 클라이언트가 생성되었다는 창이 뜨고, 클라이언트 ID, 보안 비밀번호 등 각종 정보를 보여줍니다.
+    보안 비밀번호는 노출되면 안되므로 서버 코드의 환경변수 등에 저장해두는 것이 좋습니다.
+    클라이언트 ID 역시 프론트엔드, 백엔드의 환경변수로 저장하거나 리터럴로 지정해두면 됩니다.
+    다른 팀원과 공유해야하는 경우가 있으면 JSON으로 다운로드 받아서 공유하면 됩니다.
+
+&nbsp; &nbsp; 이 등록 과정이 성공적으로 끝나면 로그인 페이지 리다이렉션, 인증 서버와 토큰 교환, 로그인 및 회원가입 처리 등 클라이언트의 인증과정 로직을 코드로 구현하면 됩니다.
+소셜로그인을 구현할 때, 클라이언트(OAuth2 역할)가 내부적으로 어떻게 구성되었든 상관없습니다.
+즉, 전형적인 CSR 방식으로 구성이 되었든(React, Spring 혹은 React, Node.js), SSR 방식으로 서버 혼자 렌더링을 하든 OAuth2의 인증 과정의 로직은 변함이 없습니다.
+다만 각 언어 생태계별로 제공하는 라이브러리에서 많이 사용하는 방식에 따라 편한 방법이 달라집니다.
+이를테면, Node.js에서는 passport 라이브러리를 많이 사용하는데 여기서는 인증 url을 서버에서 제공해서 리다이렉트하는 것 까지 제공합니다.
+즉, passport를 사용한다면 굳이 웹서버에서 리다이렉션 로직을 작성하지 않아도 되는 것입니다.<br/>
+&nbsp; &nbsp; 다만 한 가지 조심해야할 것은, 등록과정에서 받은 Client Secret이 브라우저에 노출되면 안됩니다.
+즉, 인증 서버와 접근 토큰을 교환하는 등의 플로우는 Authorization Code 방식이라고 가정했을 때 client secret 문자열을 숨길 수 있는 백엔드 서버에서 진행해야 합니다.
+그 외 나머지는 어떻게 구현하든 편하게 선택하면 됩니다.
+
+### React 구현
+
+&nbsp; &nbsp; 소셜 로그인 기능 구현 시 웹 프론트엔드가 할 수도 있는 일은 최대 세 가지입니다.
+
+1. 로그인 페이지에서 구글 로그인 버튼 눌렀을 때 구글 로그인 화면 제공하기
+2. 인증 콜백 uri(redirect uri)에서 서버에 인증 요청하기
+3. 로그인이 완료되면 이전 화면으로 돌아가기
+
+&nbsp; &nbsp; 물론 이 세가지 모두 백엔드 API 서버에서 처리할 수 있습니다.
+먼저, 구글 로그인 버튼을 눌렀을 때 프론트엔드에서 요청을 보내는 방식이 두 가지로 나뉩니다. 
+하나는 API 엔드포인트를 API 서버로 설정하는 것입니다. 이 경우 서버에서 auth url을 구글에 요청해서 받아서 리다이렉션하면 됩니다.
+클라이언트 ID를 브라우저에 노출시키지 않을 수 있고, 애플리케이션의 요청 흐름의 일관성을 지킬 수 있습니다.
+다른 하나는 프론트엔드에서 구글 인증서버에 직접 인증 url을 요청하는 것입니다.
+이 경우 클라이언트 ID를 프론트엔드 소스코드에 저장해야 하지만, API 서버에 요청을 하지 않을 수 있습니다.
+클라이언트 ID는 노출되어도 크게 상관 없고, 굳이 서버에 트래픽을 늘릴 필요는 없겠다 싶으면 프론트엔드에서 직접 url를 요청하면 됩니다.
+클라이언트 ID도 노출시키고 싶지 않고, 로그인 요청 정도는 트래픽이 부담스럽지 않다면 백엔드 서버에 인증 url을 요청해서 리다이렉트 하면 됩니다.
+바꿀 필요가 있을 경우 언제든 백엔드 서버에 API를 새로 작성하면 됩니다.<br/>
+&nbsp; &nbsp; 다음으로 인증 콜백 uri에서 처리를 하는 것입니다.
+API 백엔드 서버에서 인증 콜백 uri의 처리를 담당하면, 구글 인증서버에 uri를 요청할 때 state 파라미터에 referer uri을 문자열로 넣어주어야 합니다.
+그래야 콜백 API URI에서 로그인이 완료되고 어디로 리디렉션 할 지 명시할 수 있습니다.
+웹 프론트엔드에서 인증 콜백 uri를 처리하면, 백엔드 서버에 다시 인증 관련 요청을 보내야 합니다.
+기존 코드베이스의 컨벤션 따라 정하면 됩니다.<br/>
+&nbsp; &nbsp; 마지막으로 이전화면으로 리다이렉션 하는 기능입니다.
+예를 들어, 비회원이 주문페이지(/order)에서 '물품구매' 버튼을 누르면 로그인(/signin) 화면을 보여줍니다.
+로그인 화면에서는 애플리케이션 로그인, 구글 로그인 등 다양한 옵션이 있을 것입니다. 
+이 때, 구글 소셜로그인이 성공하면 이전의 referer였던 주문페이지로 리다이렉션해야 좋은 UX를 제공할 수 있습니다.
+사실 이는 소셜로그인에 국한되는 문제는 아니고, 로그인 페이지를 구현할 때 일반적으로 고려해야 할 사항입니다.
+저는 웹 프론트엔드에 /auth/bridge?referer='이전url' 과 같은 방식으로 브릿지 엔드포인트를 따로 두었고,
+백엔드 서버가 이 브릿지 엔드포인트에 리다이렉션 하면서 필요한 정보들을, 예를 들면 애플리케이션 전용 토큰(구글 액세스 토큰과 다름)을 전달하는 식으로 구성했습니다.<br/>
+
+### Node.js 서버 구현
+
+&nbsp; &nbsp; 서버는 redirect_uri의 요청에서 auth code 등 일련의 정보를 받아 비즈니스 로직에 필요한 처리를 하면 됩니다.
+access_type, state 등 여러 파라미터를 받아 요청을 검증하는 것이 보안 상 안전합니다. 
+state 유효성을 검증하지 않으면 csrf 공격 취약점에 노출됩니다.
+실제 구글 OAuth2.0 예시 코드를 보면 요청측에서 랜덤한 32바이트 문자열을 만들어 서버에서 일치 여부를 검증하는 코드가 있습니다.<br/>
+&nbsp; &nbsp; 웹서버는 express.js를 사용했고, 구글에 API를 호출하는 클라이언트는 googleapis 라이브러리를 사용했습니다.
+axios로 직접 파라미터를 설정해서 요청해도 되지만, googleapis에서 더 편리하게 사용할 수 있게 관련 메서드들을 제공합니다.<br/>
+&nbsp; &nbsp; 서버 코드는 아래와 같습니다. 
+
+```typescript showLineNumbers
+import { google } from "googleapis"
+import express from "express"
+
+// 구글 api 호출 클라이언트
+const oauth2Client = new google.auth.OAuth2({
+    clientId: '1234567890-somethingclientid.googleusercontent.com' // 구글 클라우드에서 발급한 클라이언트 ID
+    clientSecret: 'GOCSPX-somethingsecretstring' // 구글 클라우드에서 발급한 클라이언트 보안 비밀번호
+    redirectUri: 'http://localhost:8080/google/oauth2/callback'
+});
+
+const app = express();
+
+// google callback 엔드포인트
+app.use('/google/oauth2/callback', (req, res, next) => {
+    const { code, state } = req.query;
+    if (!code) {
+        return res.status(400).send("인증 코드가 없습니다.");
+    }
+
+    // state validation. 생략
+
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    // 구글 리소스 서버에서 사용자 정보 가져오기
+    const oauth2 = google.oauth2({ auth: this.client, version: "v2" });
+    const { data: user } = await oauth2.userinfo.get();
+
+    // 사용자 관련 로그인 처리 - 구현 세부사항
+    // 기존 회원이면 데이터베이스에서 토큰을 사용
+    const existUser = userRepo.find(user.email)
+    if(existUser) {
+        return res.json({
+            // 여기서 토큰은 애플리케이션 API 접근에 사용하는 토큰 구글 Access Token과 별개
+            token: existUser.token
+        })
+    }
+
+    // 새로운 유저면 자동 회원가입 처리하거나 회원가입 페이지로 리다이렉션 하도록 응답
+    const newUser = userRepo.create(user)
+    return res.json({
+        token: newUser.token
+    })
+});
+```
+
+### References
+
+- [RFC 6749 OAuth2.0 표준](https://datatracker.ietf.org/doc/html/rfc6749)
+- [React, Node.js 기반 OAuth2 구현 과정 설명 글](https://clerk.com/blog/oauth2-react-user-authorization)
