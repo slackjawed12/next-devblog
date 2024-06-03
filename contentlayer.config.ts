@@ -61,8 +61,6 @@ export default makeSource({
       //@ts-ignore
       rehypeKatex,
       //@ts-ignore
-      rehypePrettyCode,
-      //@ts-ignore
       rehypePrism,
       [
         rehypeExternalLinks,
