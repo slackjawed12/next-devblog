@@ -205,8 +205,10 @@ import express from "express"
 
 // 구글 api 호출 클라이언트
 const oauth2Client = new google.auth.OAuth2({
-    clientId: '1234567890-somethingclientid.googleusercontent.com' // 구글 클라우드에서 발급한 클라이언트 ID
-    clientSecret: 'GOCSPX-somethingsecretstring' // 구글 클라우드에서 발급한 클라이언트 보안 비밀번호
+    // 구글 클라우드에서 발급한 클라이언트 ID
+    clientId: '1234567890-somethingclientid.googleusercontent.com',
+    // 구글 클라우드에서 발급한 클라이언트 보안 비밀번호
+    clientSecret: 'GOCSPX-somethingsecretstring',
     redirectUri: 'http://localhost:8080/google/oauth2/callback'
 });
 
@@ -233,7 +235,8 @@ app.use('/google/oauth2/callback', (req, res, next) => {
     const existUser = userRepo.find(user.email)
     if(existUser) {
         return res.json({
-            // 여기서 토큰은 애플리케이션 API 접근에 사용하는 토큰 구글 Access Token과 별개
+            // 유저 토큰은 애플리케이션 API 접근에 사용. 
+            // 구글 Access Token과 별개
             token: existUser.token
         })
     }
