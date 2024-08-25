@@ -1,0 +1,287 @@
+---
+title: "jest open handles 문제 해결하기"
+description: jest를 활용한 테스트 시 외부 저장소를 활용할 때 자주 발생하는 경고를 해결하는 방법을 정리했습니다.
+category: Nodejs
+tag: [jest, nodejs]
+createdAt: 2024-08-25
+---
+
+### TL;DR
+
+&nbsp; &nbsp; jest 프레임워크에서 테스트가 종료했을 때, 29.7.0 버전 기준으로 다음과 같은 경고가 발생할 수 있습니다.
+
+```shell
+Jest did not exit one second after the test run has completed.
+
+This usually means that there are asynchronous operations that weren't stopped in your tests. Consider running Jest with `--detectOpenHandles` to troubleshoot this issue.
+```
+
+이 경고를 해결하기 위해선 아래와 같은 방법들이 필요합니다.
+
+1. --detectOpenHandles 옵션을 사용해서 열려있는 핸들 찾기
+2. 핸들을 종료하는 코드를 afterAll 블록에 추가
+3. 해당 테스트 시나리오를 통합테스트로 변경
+
+### Overview
+
+&nbsp; &nbsp; jest 프레임워크에서 테스트를 진행할 때, 테스트 대상 시스템(sut)이 여러 모듈을 사용하는 경우가 있습니다.
+이를테면 redis를 사용하거나, sequelize 등 데이터베이스와 커넥션을 맺는 orm을 사용하는 사례들입니다.<br/>
+&nbsp; &nbsp; 이런 경우 사용하는 인프라와 관련된 통합테스트를 진행하거나, 해당 타입만을 이용한 모의객체를 활용해서 
+단위 테스트를 진행해야 합니다. 
+&nbsp; &nbsp; 하지만 프로덕션 코드에 의존성이 명확히 명시되지 않아 프로덕션 내 인프라 관련 모듈을 직접 사용할 때가 있습니다.
+이런 경우 테스트가 종료했을 때 여러 원인으로 인해 다음과 같은 경고가 발생합니다.
+
+```shell
+Jest did not exit one second after the test run has completed.
+
+This usually means that there are asynchronous operations that weren't stopped in your tests. Consider running Jest with `--detectOpenHandles` to troubleshoot this issue.
+```
+
+이게 오류가 아니라 Warning이라 그냥 넘어갈 수도 있겠습니다만, 해당 경고는 프로덕션 코드의 설계가 잘못되었거나,
+테스트 코드를 잘못 작성했다는 힌트를 주기 때문에 중요한 경고문이기도 합니다.
+구체적인 사례를 들어 해당 경고를 없애는 해결 방법을 알아보겠습니다.
+
+### Example
+
+&nbsp; &nbsp; 캐시 저장소로 redis를 사용해서, cache 키가 있으면 'cache hit', 없으면 'cache miss'를 반환하는 함수를 구현하고,
+이 함수를 테스트하겠다고 가정하겠습니다. 먼저 redis 클라이언트를 생성하는 부분은 다음과 같습니다.
+
+```typescript
+// ./src/redis.ts
+import { createClient } from "redis";
+
+const redisClient = createClient({
+  url: "redis://localhost:6379",
+});
+
+redisClient.connect().then(() => {
+  console.log("Redis client connected");
+});
+
+export default redisClient;
+```
+
+&nbsp; &nbsp; 그리고 cache 키를 확인하는 함수는 아래와 같이 구현하면 될 것입니다.
+
+```typescript
+// ./src/function.ts
+import redisClient from "./redis";
+
+export const someFunction = async () => {
+  const cached = await redisClient.get("some-key");
+
+  if (cached) {
+    return "cache hit";
+  }
+
+  return "cache miss";
+};
+```
+
+&nbsp; &nbsp; jest로 someFunction을 테스트하는 코드를 작성해보겠습니다.
+
+```typescript 
+// ./test/someting.spec.ts
+import { someFunction } from "@/function";
+import redisClient from "@/redis";
+
+describe("somefunction test", () => {
+  it("cache 키가 있으면 cache hit을 반환한다", async () => {
+    // given
+    await redisClient.set("some-key", "1");
+
+    // when
+    const result = await someFunction();
+
+    // then
+    expect(result).toBe("cache hit");
+  });
+});
+
+export default {};
+```
+
+&nbsp; &nbsp; 이제 테스트를 실행해보면(jest 명령어로 실행) 결과는 아래와 같습니다.
+
+```shell
+  console.log
+    Redis client connected
+
+      at src/redis.ts:8:11
+
+ PASS  test/someting.spec.ts
+  test
+    ✓ cache 키가 있으면 cache hit을 반환한다 (12 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        0.418 s, estimated 1 s
+Ran all test suites.
+Jest did not exit one second after the test run has completed.
+
+'This usually means that there are asynchronous operations that weren't stopped in your tests. Consider running Jest with `--detectOpenHandles` to troubleshoot this issue.
+```
+
+&nbsp; &nbsp; 테스트가 성공적으로 통과했지만, jest는 종료되지 않고, 위와 같은 경고문을 보여줍니다.
+즉, someFunction 모듈이 사용하는 redisClient가 연결된 상태로 남아 있기 때문에, jest가 종료되지 않는 것입니다.<br/>
+&nbsp; &nbsp; 일단 이 경고가 발생하면 경고문이 안내하는대로 test 스크립트에 --detectOpenHandles 옵션을 추가해서 실행하면 됩니다.
+실행해보면 아래와 같이 결과가 바뀝니다. 
+
+```shell
+# ... 위와 동일
+
+Jest has detected the following 1 open handle potentially keeping Jest from exiting:
+
+  ●  TCPWRAP
+
+       5 | });
+       6 |
+    >  7 | redisClient.connect().then(() => {
+         |             ^
+       8 |   console.log("Redis client connected");
+       9 | });
+      10 |
+
+      at RedisSocket._RedisSocket_createNetSocket (node_modules/@redis/client/dist/lib/client/socket.js:208:21)
+      at Object.<anonymous> (src/redis.ts:7:13)
+      at Object.<anonymous> (src/function.ts:1:1)
+      at Object.<anonymous> (test/someting.spec.ts:1:1)
+```
+
+&nbsp; &nbsp; 이처럼 --detectOpenHandles 옵션은 어느 부분에서 비동기 작업이 남아있는지 알려줍니다.
+
+### 해결 방법 1. --forceExit 옵션 사용
+
+&nbsp; &nbsp; 이 문제를 급하게 덮어버리는 방법은 jest 실행 시 `--forceExit` 옵션을 주는 것입니다.
+실행해보면 결과는 아래와 같습니다.
+
+```shell
+# ... 위와 동일
+
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
+```
+
+&nbsp; &nbsp; 로그에서도 보이지만, 모든 테스트가 끝났는데도 계속 실행하는 비동기 작업이 있다는 것을 알려주고 있습니다.
+이 방법은 문제를 해결하는 것이 아니라 말그대로 덮는 방법입니다. 정상적인 상황이 아닌데 강제로 종료한 것이기 때문입니다.
+따라서 일반적으로 사용하는 방법은 아닙니다. 스크립트에서 `--forceExit` 옵션을 사용하는 것은 권장하지 않습니다.<br/>
+
+
+### 해결 방법 2. redisClient 연결 종료 코드 추가
+
+&nbsp; &nbsp; 두 번째 방법은 redisClient 연결을 종료하는 코드를 추가하는 것입니다.
+afterAll 구문을 활용하여 테스트 대상이 사용하는 redisClient 연결을 종료하는 코드를 추가하면 됩니다.
+
+```typescript
+import { someFunction } from "@/function";
+import redisClient from "@/redis";
+
+describe("somefunction test", () => {
+  // afterAll 추가
+  afterAll(async () => {
+    await redisClient.quit();
+  });
+
+  it("cache 키가 있으면 cache hit을 반환한다", async () => {
+    // given
+    await redisClient.set("some-key", "1");
+
+    // when
+    const result = await someFunction();
+
+    // then
+    expect(result).toBe("cache hit");
+  });
+});
+
+export default {};
+```
+
+&nbsp; &nbsp; 이렇게 afterAll로 테스트 대상 시스템이 사용하는 모든 리소스들을 정리하면, jest가 정상적으로 종료됩니다.  
+이 방법은 테스트가 통합테스트라고 가정했을 경우에 사용하면 됩니다. 
+
+
+### 해결 방법 3. manual mocking
+
+&nbsp; &nbsp; 만약 단위테스트로 진행하는 경우에는 [수동 모의(Manual Mocks)](https://jestjs.io/docs/manual-mocks)를 이용해서, 
+__mocks__ 폴더 아래에 모의 객체와 관련된 모듈을 만들고 jest에서 해당 모듈을 대신 호출하도록 할 수 있습니다.<br/>
+
+
+### 주로 활용한 방법 - 의존성 주입과 jest-mock-extended
+
+&nbsp; &nbsp; jest-mock-extended 라이브러리를 사용해서 모의 객체를 만들고 이를 의존성으로 주입해주는 방식도 있습니다.
+저는 이 방식이 코드 상에서 의존성이 더 명확히 표현되는 것 같아서 선호하는 편입니다. 
+예를 들면 기존 코드를 아래와 같이 코드를 바꿀 수 있습니다.(편의상 class를 사용합니다.)<br/>
+
+```typescript
+import { createClient } from "redis";
+// ./src/function.ts
+export class SomeFunction {
+  redisClient: ReturnType<typeof createClient>;
+
+  constructor(redisClient: ReturnType<typeof createClient>) {
+    this.redisClient = redisClient;
+  }
+
+  async someFunction() {
+    const cached = await this.redisClient.get("some-key");
+
+    if (cached) {
+      return "cache hit";
+    }
+
+    return "cache miss";
+  }
+}
+```
+
+&nbsp; &nbsp; SomeFucnction 함수 모듈은 redis의 인스턴스가 아닌 클래스(createClient의 반환타입)에 의존하므로,
+실제 redis 인스턴스는 클래스를 생성하는 시점에 주입해주면 됩니다. 
+만약 통합테스트라면 사용하는 클라이언트는 redis의 실제 테스트환경 인스턴스에 해당하는 클라이언트일 것이고,
+단위테스트라면 어떤 방식으로든 만들어진 모의 객체가 될 것입니다.
+아래는 단위테스트를 가정하고 jest-mock-extended의 mock함수를 사용한 예시입니다.
+
+```typescript
+// ./test/someting.spec.ts
+import { SomeFunction } from "@/function";
+import { mock } from 'jest-mock-extended';
+
+describe("somefunction test", () => {
+  const redisClient = mock<ReturnType<typeof createClient>>();
+  const someFunction = new SomeFunction(redisClient); 
+  // option 2 : beforeEach마다 새로 인스턴스를 생성할 수도 있다.
+  // let someFunction;
+
+  // beforeEach(()=>{
+  //   someFunction = new SomeFunction(redisClient);
+  // });
+
+  it("cache 키가 있으면 cache hit을 반환한다", async () => {
+    // given
+    redisClient.get.mockImplementation(async (...args) => "1");
+
+    // when
+    const result = await someFunction.someFunction();
+
+    // then
+    expect(result).toBe("cache hit");
+  });
+});
+
+export default {};
+```
+
+&nbsp; &nbsp; 하지만 이 방식은 프로덕션 코드를 어느 정도 컨벤션에 맞게 리팩터링 하는 과정이 선행되어야 할 수 있습니다.
+이 방식은 따지고 보면 java mockito의 mock, injectedMocks 어노테이션을 의존하는 객체에 달아주는 방식과 비슷합니다.
+
+### 마무리
+
+&nbsp; &nbsp; jest에서 발생하는 경고문을 해결하는 과정을 따라가다 보니,
+어쩌다 기존 코드의 설계와 테스트 코드의 작성 방법까지 다시 되돌아보게 되었습니다. 
+open handles 경고의 해결 방식은 여러 가지가 있었지만, 
+어쨌든 그 결과는 모두 테스트 코드에서 테스트 대상이 의존하는 리소스를 명확히 표현하는 것으로 이어졌습니다.<br/>
+
+### Reference
+
+- [jest 공식문서 - 수동 모의](https://jestjs.io/docs/manual-mocks)
+- [jest.mock 보다 ts-mockito 사용하기](https://jojoldu.tistory.com/638)
