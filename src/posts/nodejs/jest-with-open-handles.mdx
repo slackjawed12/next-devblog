@@ -18,16 +18,16 @@ This usually means that there are asynchronous operations that weren't stopped i
 
 이 경고를 해결하기 위해선 아래와 같은 방법들이 필요합니다.
 
-1. --detectOpenHandles 옵션을 사용해서 열려있는 핸들 찾기
-2. 핸들을 종료하는 코드를 afterAll 블록에 추가
-3. 해당 테스트 시나리오를 통합테스트로 변경
+1. --detectOpenHandles 옵션을 사용해서 열려있는 핸들 디버깅
+2. 통합 테스트일 경우, 핸들을 종료하는 코드를 afterAll 블록에 추가
+3. 단위 테스트일 경우, 핸들이 열린 외부 리소스를 모의객체로 대체
 
 ### Overview
 
 &nbsp; &nbsp; jest 프레임워크에서 테스트를 진행할 때, 테스트 대상 시스템(sut)이 여러 모듈을 사용하는 경우가 있습니다.
 이를테면 redis를 사용하거나, sequelize 등 데이터베이스와 커넥션을 맺는 orm을 사용하는 사례들입니다.<br/>
 &nbsp; &nbsp; 이런 경우 사용하는 인프라와 관련된 통합테스트를 진행하거나, 해당 타입만을 이용한 모의객체를 활용해서 
-단위 테스트를 진행해야 합니다. 
+단위 테스트를 진행해야 합니다. <br/>
 &nbsp; &nbsp; 하지만 프로덕션 코드에 의존성이 명확히 명시되지 않아 프로덕션 내 인프라 관련 모듈을 직접 사용할 때가 있습니다.
 이런 경우 테스트가 종료했을 때 여러 원인으로 인해 다음과 같은 경고가 발생합니다.
 
@@ -37,7 +37,7 @@ Jest did not exit one second after the test run has completed.
 This usually means that there are asynchronous operations that weren't stopped in your tests. Consider running Jest with `--detectOpenHandles` to troubleshoot this issue.
 ```
 
-이게 오류가 아니라 Warning이라 그냥 넘어갈 수도 있겠습니다만, 해당 경고는 프로덕션 코드의 설계가 잘못되었거나,
+&nbsp; &nbsp;이게 오류가 아니라 Warning이라 그냥 넘어갈 수도 있겠습니다만, 해당 경고는 프로덕션 코드의 설계가 잘못되었거나,
 테스트 코드를 잘못 작성했다는 힌트를 주기 때문에 중요한 경고문이기도 합니다.
 구체적인 사례를 들어 해당 경고를 없애는 해결 방법을 알아보겠습니다.
 
@@ -167,10 +167,11 @@ Force exiting Jest: Have you considered using `--detectOpenHandles` to detect as
 따라서 일반적으로 사용하는 방법은 아닙니다. 스크립트에서 `--forceExit` 옵션을 사용하는 것은 권장하지 않습니다.<br/>
 
 
-### 해결 방법 2. redisClient 연결 종료 코드 추가
+### 해결 방법 2. 외부 리소스 종료 코드 추가 - afterAll
 
-&nbsp; &nbsp; 두 번째 방법은 redisClient 연결을 종료하는 코드를 추가하는 것입니다.
-afterAll 구문을 활용하여 테스트 대상이 사용하는 redisClient 연결을 종료하는 코드를 추가하면 됩니다.
+&nbsp; &nbsp; 두 번째 방법은 외부 리소스를 종료하는 코드를 afterAll 블록에 추가하는 것입니다.
+예시에서는 redisClient 연결을 종료하는 코드를 추가하는 것에 해당합니다.
+afterAll 구문을 활용하여, 테스트 대상이 사용하는 외부 리소스인 redisClient의 연결을 종료하는 코드를 추가하면 됩니다.
 
 ```typescript
 import { someFunction } from "@/function";
@@ -197,14 +198,14 @@ describe("somefunction test", () => {
 export default {};
 ```
 
-&nbsp; &nbsp; 이렇게 afterAll로 테스트 대상 시스템이 사용하는 모든 리소스들을 정리하면, jest가 정상적으로 종료됩니다.  
+&nbsp; &nbsp; 이렇게 afterAll로 테스트 대상 시스템이 사용하는 모든 리소스들을 정리하면, jest가 정상적으로 종료됩니다.
 이 방법은 테스트가 통합테스트라고 가정했을 경우에 사용하면 됩니다. 
 
 
 ### 해결 방법 3. manual mocking
 
 &nbsp; &nbsp; 만약 단위테스트로 진행하는 경우에는 [수동 모의(Manual Mocks)](https://jestjs.io/docs/manual-mocks)를 이용해서, 
-__mocks__ 폴더 아래에 모의 객체와 관련된 모듈을 만들고 jest에서 해당 모듈을 대신 호출하도록 할 수 있습니다.<br/>
+\_\_mocks\_\_ 폴더 아래에 모의 객체와 관련된 모듈을 만들고 jest에서 해당 모듈을 대신 호출하도록 할 수 있습니다.<br/>
 
 
 ### 주로 활용한 방법 - 의존성 주입과 jest-mock-extended
