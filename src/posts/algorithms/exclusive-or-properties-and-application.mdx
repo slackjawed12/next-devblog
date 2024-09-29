@@ -1,0 +1,168 @@
+---
+title: "XOR 연산의 성질과 활용방법"
+description: XOR 연산의 대표적인 성질을 살펴보고, 기초적인 활용방법을 살펴봤습니다.
+category: Algorithm
+tag: [bitwise, XOR]
+createdAt: 2024-09-29
+---
+
+### Overview
+
+&nbsp; &nbsp; XOR 연산은 코딩테스트 문제 풀다가 잊을만하면 등장해서 머릿속을 괴롭히는 놈입니다. 
+XOR 연산이 갖고있는 여러 기초적인 특성들을 살펴보고, 문제에서 어떻게 써먹는지 정리해보았습니다.
+
+### XOR 연산의 특성들
+
+&nbsp; &nbsp; 두 비트열 A, B에 대해 XOR 연산을 $$ A \oplus B $$ 로 표현하겠습니다.
+
+1. 교환법칙 : $$ A \oplus B = B \oplus A $$
+
+2. 결합법칙 : $$ (A \oplus B) \oplus C = A \oplus (B \oplus C) $$
+
+3. 항등원 : $$ A \oplus 0 = A $$
+
+4. **역원 : $$ A \oplus A = 0 $$** 
+
+&nbsp; &nbsp; 여기서 자기 자신과 XOR 연산을 하면 0이 나온다는 마지막 특성이 XOR 연산의 가장 큰 특징입니다.
+
+### XOR 연산 활용 1 - XOR swap algorithm
+
+&nbsp; &nbsp; XOR 연산의 특성들을 이용하면 swap 함수를 XOR 연산만으로 작성할 수 있습니다.
+보통 C언어로 swap 함수를 작성하면 아래와 같이 temp라는 임시변수를 통해 값을 번갈아서 할당하는 과정을 거칩니다.
+
+```C
+void swap(int* a, int* b) {
+    int temp = *a
+    *a = *b
+    *b = *temp
+}
+```
+
+&nbsp; &nbsp; XOR 연산을 이용하면 임시변수 없이 직접 교환이 가능합니다.
+주석의 설명처럼 자기 자신과 XOR 연산을 했을 때 0이 된다는 특성을 이용합니다.
+
+```C
+void swap(int* a, int* b) {
+    if(a != b) {
+      *a = *a ^ *b
+      *b = *a ^ *b // 우변의 a는 a ^ b 이므로, 식을 풀어쓰면 a ^ b ^ b가  되므로 a
+      *a = *a ^ *b // 우변의 a는 a ^ b, b는 a이므로 a ^ b ^ a가 되므로 b
+    }
+}
+```
+
+&nbsp; &nbsp; 디버깅도 힘들고, 정수 타입만 가능하며, 결정적으로 성능 차이도 거의 없기 때문에 XOR을 활용해서 swap을 하는 경우는 사실상 없습니다.
+
+### XOR 연산 활용 2 - 중복 찾기
+
+&nbsp; &nbsp;[LeetCode의 645번 문제](https://leetcode.com/problems/set-mismatch)처럼, 정수 문자열에서 중복을 찾아내는 문제들에서 XOR 연산을 제한적으로 활용해 볼 수 있습니다.
+문제를 간단히 설명하자면, 길이가 n인 정수 배열이 주어지는데, 원하는 배열은 1부터 n까지 한번씩 등장하는 배열이어야 합니다.
+그런데 주어지는 배열은 중복인 정수가 하나 끼어들어 원하는 배열이 되지 못한 상태입니다.
+중복인 정수와 누락된 정수를 각각 찾아내는 문제입니다. 
+이를테면, 배열이 [4,1,2,2]라면 2는 중복되었고 [1,2,3,4]에서 3이 누락되었으니, [2,3]을 반환해야 합니다.<br/>
+&nbsp; &nbsp; 이 문제는 아래와 같이 dictionary를 활용하면 아주 쉽게 해결할 수 있는 문제입니다.
+
+```Python
+class Solution:
+    def findErrorNums(self, nums: List[int]) -> List[int]:
+        d = {n:0 for n in range(1, len(nums)+1)}
+        for n in nums:
+            d[n] += 1
+        
+        dup, omit = -1, -1
+        for k, v in d.items():
+          if v == 2:
+            dup = k
+          elif v == 0:
+            omit = k
+        
+        return [dup, omit]
+```
+
+&nbsp; &nbsp; dictionary를 활용하면 쉽긴한데, dictionary에 정수를 저장하는 만큼 메모리가 증가하므로 O(n)의 공간복잡도로 해결한 셈이 됩니다.<br/>
+&nbsp; &nbsp; XOR 연산의 성질을 활용하면 추가 메모리 공간 없이 이 문제를 해결할 수 있습니다.<br/>
+
+&nbsp; &nbsp; 배열 [1,2,2,4]를 케이스로 예시를 들어보겠습니다. 
+
+    1. 먼저, [1,2,2,4] 배열요소 전체에 XOR 연산을 진행합니다. 
+
+        결과는 $$ 1 \oplus 2 \oplus 2 \oplus 4 $$ 가 됩니다.
+    
+    2. 기댓값인 [1,2,3,4] 배열요소 전체에 XOR 연산한 값을 결과값에 적용합니다.
+
+        결과는 $$ 1 \oplus 2 \oplus 2 \oplus 4 \oplus 1 \oplus 2 \oplus 3 \oplus 4 = 2 \oplus 3 $$이 됩니다.
+    
+&nbsp; &nbsp; 즉, 1번과 2번 과정을 거치면 1번만 등장한 정수들은 자기 자신끼리 XOR하므로 사라지고, 
+누락되거나 2번 등장한 정수는 한 번 횟수가 남아 결과값에 XOR 형태로 합쳐져 남아있게 됩니다. 이 XOR 값은 0010 ^ 0011 = 0001 인데, 문제는 당장 이 값만 봐서는 아무짝에 쓸모가 없다는 겁니다.
+이 값으로부터 2와 3을 각각 뽑아내기 위해선, $$ 2 \oplus 3 $$이 정답인 2와 3으로 구성된 결과라는 점을 더 써먹어야 합니다.<br/>
+&nbsp; &nbsp; 첫 단추는 '자기자신과 XOR 연산한 결과는 0이다'의 역인, 'XOR 연산한 결과가 0이 아니면 두 정수는 다르다'는 사실을 이용하는 것입니다. 
+2와 3은 다른 값이므로 2 XOR 3은 0이 아닐 것이고, 따라서 비트열 중에 값이 1인 위치가 있습니다. 
+이 위치는 2와 3이 각각 bit가 0,1 이거나 1,0인 위치여서 XOR 한 결과가 1로 남은 위치입니다.
+즉, 2와 3을 분리하기 위해, 2와 3을 구분해주는 bit를 이용해야 합니다.
+숫자에 따라 XOR 결과의 bit가 1인 위치가 여러 개 있겠지만, 편의상 '가장 오른쪽 bit'를 구하겠습니다. 
+이 한 개의 bit가 단서가 되어, 우리가 원하는 2, 3을 각각 뽑아낼 수 있을 것 같습니다.
+
+    3. $$ 2 \oplus 3 $$의 가장 오른쪽 1 비트를 구합니다.
+
+        결과값 비트열은 0010 ^ 0011 = 0001 이고,<br/>
+        가장 오른쪽 비트를 구하는 식은 x & -x(혹은 x & ~(x-1))이므로,<br/>
+        2와 3의 가장 오른쪽 bit는 0001 & 1111 = 0001 입니다.
+
+&nbsp; &nbsp; 이제 이 '가장 오른쪽 비트'를 이용해서 정수들을 두 그룹으로 나눠, 그 그룹마다 XOR 결과를 저장할 것입니다.
+
+    4. [1,2,2,4] 배열에서 가장 오른쪽 비트가 1인 정수와 0인 정수로 나누어 XOR 결과를 저장한다.
+
+        a는 가장 오른쪽 bit 위치가 1인 정수(즉, 0001, 0011 등)들의 XOR 값입니다. <br/>
+        현재 배열엔 1밖에 없으므로, $$ a = 1 $$입니다.<br/>
+        반면 b는 가장 오른쪽 bit 위치가 0인 정수(즉, 0000, 0010, 0110 등)들의 XOR 값입니다.<br/>
+        $$ b = 2 \oplus 2 \oplus 4 $$입니다.
+    
+    5. [1,2,3,4] 배열에서 마찬가지로 그룹을 나누어 XOR 결과를 저장합니다.
+
+        4번 과정을 반복해서 결괏값인 a, b에 각각 적용합니다. 결과는 아래와 같습니다.<br/>
+        $$ a = 1 \oplus 1 \oplus 3 = 3$$,<br/>
+        $$ b = 2 \oplus 2 \oplus 4 \oplus 2 \oplus 4 = 2$$
+        
+&nbsp; &nbsp; 1, 2번 과정에서와 비슷하게 중복된 정수인 2는 3번 등장하므로 a, b 둘 중 하나에 저장되었고, 
+누락된 정수인 3은 1번 등장하므로 a, b 두 변수 중 하나에 저장되었습니다. 이번에 차이점은 2와 3이 각각 
+'가장 오른쪽 비트'라는 기준으로 나뉘었고, 이걸 바탕으로 모든 정수가 그룹으로 나뉘어
+a, b 변수에 나눠서 들어갈 수 있었다는 것입니다.<br/>
+&nbsp; &nbsp; 마지막으로 a와 b는 가장 오른쪽 비트를 기준으로 분리해서 얻은 값일 뿐이지, 중복인지 누락인지는 이 값을 봐서는 모릅니다.
+선형탐색으로 a, b가 중복인지 누락인지만 판별해주면 됩니다.<br/>
+&nbsp; &nbsp; 이 지난한 과정을 코드로 구현한 결과는 아래와 같습니다.
+```Python
+class Solution:
+    def findErrorNums(self, nums: List[int]) -> List[int]:
+        xor = 0
+        for n in nums:
+            xor ^= n
+        for n in range(1, len(nums)+1):
+            xor ^= n
+
+        rightmost = xor & ~(xor-1)
+        setbit = 0
+        not_setbit = 0
+        for n in nums:
+            if n & rightmost:
+                setbit ^= n
+            else:
+                not_setbit ^= n
+        
+        for n in range(1, len(nums)+1):
+            if n & rightmost:
+                setbit ^= n
+            else:
+                not_setbit ^= n
+
+        return [setbit, not_setbit] if setbit in nums else [not_setbit, setbit]
+```
+
+&nbsp; &nbsp; dictionary를 활용한 답이 오버헤드는 있지만 범용적으로 사용 가능하고, 코드 이해도 쉽습니다.
+반면 XOR을 활용한 답은 아주 특수한 케이스에서만 사용할 수 있습니다. 
+앞에서 예를 든 문제처럼, '나머지 요소들은 단 한번씩만 등장한다'와 같은 제약조건들이 있어야 합니다.
+
+### References
+
+- [Exclusive OR 위키](https://en.wikipedia.org/wiki/Exclusive_or)
+- [LeetCode의 645번 문제](https://leetcode.com/problems/set-mismatch)
+- [LeetCode의 3289번 문제](https://leetcode.com/problems/the-two-sneaky-numbers-of-digitville)
