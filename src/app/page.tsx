@@ -1,11 +1,11 @@
-import { Post, allPosts } from "contentlayer/generated";
-import { compareDesc } from "date-fns";
-import Link from "next/link";
-import GlobalSideNavigation from "src/components/GlobalSideNavigation";
+import { allPosts } from 'contentlayer/generated';
+import { compareDesc } from 'date-fns';
+import GlobalSideNavigation from 'src/components/GlobalSideNavigation';
+import PostItem from 'src/components/PostItem';
 
 export default function HomePage() {
   return (
-    <main>
+    <main className="min-h-screen">
       <div className="flex">
         <GlobalSideNavigation />
         <RecentPosts />
@@ -25,21 +25,5 @@ function RecentPosts() {
           return <PostItem key={i} post={post} />;
         })}
     </div>
-  );
-}
-
-function PostItem({ post }: { post: Post }) {
-  return (
-    <Link href={`/posts/${post.slug}`}>
-      <div className="my-10 flex flex-col">
-        <h2 className="font-bold py-2 text-sm truncate md:text-xl">
-          {post.title}
-        </h2>
-        <span className="text-sm py-1 md:text-lg">{post.description}</span>
-        <span className="text-slate-400 text-xs py-1 md:text-sm">
-          {post.createdAt.split("T")[0]}
-        </span>
-      </div>
-    </Link>
   );
 }
