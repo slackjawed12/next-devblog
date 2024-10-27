@@ -1,0 +1,117 @@
+---
+title: 2개의 스택으로 큐 구현하기
+description: 2개의 스택으로 큐를 구현하는 방법을 살펴봤습니다.
+category: Algorithm
+tag: [stack, queue]
+createdAt: 2024-10-27
+---
+
+## Overview
+
+&nbsp; &nbsp; 2개의 스택으로 큐를 구현하는 문제는 잊을만하면 나오는 꽤 유명한 문제입니다.
+스택을 어떻게 정리하냐에 따라, 시퀀스 전체 연산의 상환 시간복잡도(amortized time complexity)가 달라진다는 점이 꽤 흥미로운 문제입니다.
+구현 방법을 각각 살펴보고, 성능을 분석해보겠습니다.
+
+## 풀이 1
+
+&nbsp; &nbsp; 큐를 구성하는 두 개의 스택을 각각 bucket, stack이라고 하겠습니다.
+bucket은 임시 저장소 역할을 하고, stack이 최종적으로 큐에서 데이터를 찾는 곳이 됩니다.
+첫 번째는 큐에서 enqueue 연산이 일어날 때, stack에 저장되어 있던 데이터를 일단 bucket으로 모두 옮기는 방식입니다.
+이후 삽입할 요소를 stack에 넣고, bucket에 잠시 저장했던 데이터들을 차례로 다시 stack에 다시 push하면 됩니다.
+
+```java
+class MyQueue {
+    Stack<Integer> bucket;
+    Stack<Integer> st;
+    
+    public MyQueue() {
+        bucket=new Stack<>();
+        st=new Stack<>();
+    }
+    
+    public void enqueue(int x) {
+        while(!st.empty()){
+            bucket.push(st.pop());
+        }
+        st.push(x);
+        while(!bucket.empty()){
+            st.push(bucket.pop());
+        }
+    }
+    
+    public int dequeue() {
+        return st.pop();
+    }
+    
+    public int peek() {
+        return st.peek();
+    }
+    
+    public boolean empty() {
+        return st.size()==0;
+    }
+}
+```
+
+### 첫 번째 풀이의 문제점
+
+&nbsp; &nbsp; $N$개의 enqueue operation이 있다고 하면 $N$번의 enqueue 연산의 총 시간복잡도는 $O(N^2)$이 됩니다.
+한번의 enqueue 연산이 $2*k$ 수행시간을 갖기 때문입니다. 
+즉, 최악의 경우 연산 당 평균 시간복잡도는 $O(N^2/N)=O(N)$이 됩니다.
+
+## 3. 풀이 2
+
+&nbsp; &nbsp; 이번에도 큐를 구성하는 두 개의 스택을 각각 bucket, stack이라고 하겠습니다.
+두 번째 방법은 push할 때는 bucket에 넣어두고, 찾는 연산인 pop, peek이 호출될 때만 bucket에서 stack으로 옮깁니다.
+
+```java
+class MyQueue {
+    Stack<Integer> bucket;
+    Stack<Integer> st;
+
+    public MyQueue() {
+        bucket = new Stack<>();
+        st = new Stack<>();
+    }
+
+    public void enqueue(int x) {
+        bucket.push(x);
+    }
+
+    public int dequeue() {
+        peek();
+        return st.pop();
+    }
+
+    public int peek() {
+        if (st.isEmpty()) {
+            while (!bucket.isEmpty()) {
+                st.push(bucket.pop());
+            }
+        }
+        return st.peek();
+    }
+
+    public boolean empty() {
+        return bucket.isEmpty() && st.isEmpty();
+    }
+}
+```
+
+&nbsp; &nbsp; 이제 시간복잡도를 대략적으로 계산해보면 다음과 같습니다.
+편의상 $N$번의 push 연산과 $N$번의 pop 연산을 수행한다고 가정하겠습니다.
+(이는 연산의 순서와 관계없이 시간복잡도에 대한 결론은 같기 때문입니다.)
+
+|연산|수행시간|
+|:---|:---|
+|push|$N*1$|
+|첫 번째 pop|$1*2N$|
+|이후 pop|$(N-1)*1$|
+
+&nbsp; &nbsp; 총 연산 횟수가 $2N$이므로 평균 시간복잡도가 $O(4N/2N)=O(1)$입니다.
+1번 풀이와의 차이는 스택을 정리하는 작업을 언제 하는가의 차이입니다.
+
+## Reference
+
+[문제 링크](https://leetcode.com/problems/implement-queue-using-stacks/) <br/>
+ch17 분할상환 분석, Introduction to Algorithms, 3rd Edition
