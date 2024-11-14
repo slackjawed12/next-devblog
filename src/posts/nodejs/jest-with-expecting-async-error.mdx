@@ -1,0 +1,136 @@
+---
+title: "jest에서 비동기 함수의 테스트"
+description: 테스트 시 비동기 함수를 검증할 때 주의할 점을 살펴보았습니다.
+category: Nodejs
+tag: [jest, nodejs]
+createdAt: 2024-11-14
+---
+
+### TL;DR
+
+&nbsp; &nbsp; jest에서 비동기 함수를 테스트할 때는 Promise, Async/Await, Callbacks, 
+.resolves/.rejects 방식들이 있습니다. 
+이 때 Async/Await 방식을 사용 중이고, try - catch를 사용하지 않는 경우 expect 앞에
+return, await 구문이 반드시 들어가야 합니다.
+
+```typescript showLineNumbers
+test('the data is peanut butter', async () => {
+  await expect(fetchData()).resolves.toBe('peanut butter');
+  // return expect(fetchData()).resolves.toBe('peanut butter');
+});
+
+test('the fetch fails with an error', async () => {
+  await expect(fetchData()).rejects.toMatch('error');
+  // return expect(fetchData()).rejects.toMatch('error');
+});
+```
+
+&nbsp; &nbsp; return 혹은 await이 빠지면 async 함수가 끝나기 전에 테스트 함수가 종료됩니다.
+afterEach 구문 등에서 리소스를 정리하는 코드가 있을 경우 예상과 다르게 동작할 수 있어 주의해야 합니다.
+
+### Overview
+
+jest에서 비동기 함수를 테스트할 때는 Promise, Async/Await, Callbacks 방식들이 있습니다.
+하나씩 살펴보겠습니다.
+
+### Promises
+
+&nbsp; &nbsp; test 구문에서 Promise를 반환하는 방식입니다. 아래와 같이 작성하면 jest 프레임워크가 promise 반환을 기다리고,
+기대한 데이터가 resolve 되면 테스트 성공, reject되거나 기대한 문자열이 아니면 테스트가 실패합니다.
+
+```typescript showLineNumbers
+test('the data is peanut butter', () => {
+  return fetchData().then(data => {
+    expect(data).toBe('peanut butter');
+  });
+});
+```
+
+저는 async await 구문이 익숙해진터라 잘 사용하는 방식은 아닙니다.
+
+### Async/Await
+
+&nbsp; &nbsp; Async/Await 구문으로 테스트할 때는 기본적으로는 테스트 함수 구문에 비동기 함수를 직접 콜백으로 전달합니다.
+만약 성공케이스면 `await fetch()`와 같이 await 구문을 직접 대상 메서드에 적용해 호출합니다.
+예외 케이스를 검증하는 경우, 약간 방식이 달라집니다. 성공케이스처럼 직접 await을 적용하면 대상 함수가 직접 Error 객체를 throw했을 때 
+`await fetch()`에서 오류가 발생하므로 테스트 전체가 동작이 멈춥니다. 그래서 예외 케이스는 try - catch로 감싸주어야 합니다.
+종합해보면, 아래와 같은 방식으로 작성할 수 있습니다.
+
+```typescript showLineNumbers
+// 성공케이스
+test('the data is peanut butter', async () => {
+  const data = await fetchData();
+  expect(data).toBe('peanut butter');
+});
+
+// 예외케이스 - try catch 사용
+test('the fetch fails with an error', async () => {
+  expect.assertions(1);
+  try {
+    await fetchData();
+  } catch (error) {
+    expect(error).toMatch('error');
+  }
+});
+```
+
+&nbsp; &nbsp; 아니면 아래와 같이, expect의 대상이 promise일 때 사용할 수 있는
+**resolves, rejects Matcher**를 사용할 수 있습니다. 
+return하는 경우, 테스트 함수의 콜백을 async로 전달하지 않아도 됩니다.
+중요한 것은 **return 혹은 await 둘 중 하나는 반드시 붙여야 한다는 것입니다.**
+
+```typescript showLineNumbers
+// 성공케이스 - expect resove 사용
+test('the data is peanut butter', () => {
+  return expect(fetchData()).resolves.toBe('peanut butter');
+});
+
+test('the data is peanut butter', async () => {
+  await expect(fetchData()).resolves.toBe('peanut butter');
+});
+
+// 예외케이스 - expect rejects 사용
+test('the fetch fails with an error', async () => {
+  await expect(fetchData()).rejects.toMatch('error');
+});
+
+test('the fetch fails with an error', () => {
+  return expect(fetchData()).rejects.toMatch('error');
+});
+```
+
+&nbsp; &nbsp; **return 혹은 await이 빠지면 async 함수가 끝나기 전에 테스트 함수가 종료**됩니다.
+특히 비동기 함수를 검증하는 테스트는 외부 리소스 의존성이 있는 경우가 많은데,
+하필 afterEach 구문 등에서 리소스를 정리하는 코드가 있을 경우 예상과 다르게 동작할 수 있어 주의해야 합니다.<br/>
+&nbsp; &nbsp; 참고로 얼마 전에 통합테스트를 실행하는데, 이와 관련해서 예상치 못한 방식으로 테스트가 계속 실패했습니다.
+이를테면 아이템을 구매할 때 유저의 소유 금액이 더 작으면 **'소유 금액이 부족합니다.'** 라는 구문으로 예외가 발생해야 했습니다.
+그런데 테스트를 실행시키면 **'유저를 찾을 수 없습니다'** 오류가 발생해 오류 구문이 일치하지 않아 실패했었습니다.
+코드를 찾아보니 아래와 같은 형식이었습니다.<br/>
+
+```typescript showLineNumbers
+afterEach(async() => {
+  // buy 함수가 실행중일 때 afterEach 본문을 실행한다.
+  await user.truncate();
+})
+
+test('유저가 갖고 있는 금액이 작으면 예외가 발생한다.', async () => {
+  // ... 준비코드
+
+  // 테스트 실패!
+  expect(buy()).reject.toThrow(new Error('소유 금액이 부족합니다.'));
+});
+```
+
+&nbsp; &nbsp; 즉, **buy 함수가 종료되기 전에 afterEach 구문이 실행**되어 유저 테이블이 삭제되고,
+이 때문에 유저를 찾을 수 없다는 엉뚱한 예외가 발생했던 것입니다.
+이런 이유로 항상 비동기 코드를 expect로 검증하는 경우 await, return을 빼먹지 않고 작성해야 합니다.<br/>
+&nbsp; &nbsp; 이런 여러 삽질에도 불구하고 저는 공식문서에서 소개한 방식들 중 Async/Await 방식이 가장 가독성, 편의성이 좋다고 생각했습니다.
+Async/Await에 expect를 사용하면 예외처리를 검증할 때 반복해서 작성해야 하는 try - catch 구문이 필요없습니다.
+그 외에도 try - catch 방식과 달리 1) 예외없이 완료될 때 추가 작업이 필요 없고, 
+2) 에러 트레이스에 관한 로그를 따로 작성하지 않아도 되기 때문에 테스트하기에 더 편합니다.
+[(참고 - 향로님 글)](https://jojoldu.tistory.com/656)
+
+### Reference
+
+- [jest 공식문서 - 비동기 테스트](https://jestjs.io/docs/asynchronous)
+- [향로님 글 - Jest로 Error 검증시 catch 보다는 expect](https://jojoldu.tistory.com/656)
