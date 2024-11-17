@@ -18,7 +18,7 @@ export default function PostLayout({ params }: { params: { slug: string[] } }) {
   const Content = getMDXComponent(post?.body?.code ?? '');
 
   return (
-    <article className="prose prose-sm mx-auto max-w-3xl pt-8 dark:prose-invert sm:prose-base lg:prose-lg">
+    <article className="prose prose-sm prose-sky mx-auto max-w-3xl pt-8 dark:prose-invert sm:prose-base lg:prose-lg">
       <div className="mb-1">
         <h1 className="text-center">{post?.title}</h1>
         <div className="align-center flex justify-center gap-5">
