@@ -17,7 +17,7 @@ const config: Config = {
           '@apply text-neutral-900 dark:text-neutral-50': '',
         },
         '.bg-primary-color': {
-          '@apply bg-neutral-50 dark:bg-neutral-900': '',
+          '@apply bg-neutral-50 dark:bg-neutral-800': '',
         },
       });
     }),

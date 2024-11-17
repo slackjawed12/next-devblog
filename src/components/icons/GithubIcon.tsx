@@ -3,7 +3,7 @@ export default function GithubIcon({
   width = 18,
   height = 18,
   ...props
-}: React.ComponentProps<"svg">) {
+}: React.ComponentProps<'svg'>) {
   return (
     <svg
       role="img"

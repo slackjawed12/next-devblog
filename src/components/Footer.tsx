@@ -1,3 +1,4 @@
+'use client';
 import Link from 'next/link';
 import { BLOG_START_YEAR } from 'src/config/constants';
 import GithubIcon from './icons/GithubIcon';
@@ -10,7 +11,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="relative translate-y-full py-5">
+    <footer className="text-primary-color relative translate-y-full py-5">
       <div className="mb-1 flex flex-row space-x-2">
         <a href="https://github.com/slackjawed12">
           <GithubIcon />
