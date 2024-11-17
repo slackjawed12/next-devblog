@@ -22,13 +22,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <body
-        className={`${inter.className} max-w-3x mx-auto h-auto min-h-screen px-6 sm:max-w-6xl sm:px-8`}
+        className={`${inter.className} max-w-3x bg-primary-color mx-auto h-auto min-h-screen px-6 sm:max-w-6xl sm:px-8`}
       >
-        <Header />
-        <Providers>{children}</Providers>
-        <Footer />
+        <Providers>
+          <Header />
+          {children}
+          <Footer />
+        </Providers>
       </body>
     </html>
   );

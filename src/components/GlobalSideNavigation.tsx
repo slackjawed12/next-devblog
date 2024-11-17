@@ -10,7 +10,7 @@ export default function GlobalSideNavigation() {
 
   return (
     <div className="mr-6 hidden flex-col md:flex">
-      <span className="mb-8 text-center">주제별 카테고리</span>
+      <span className="text-primary-color mb-8 text-center">주제별 카테고리</span>
       <CategoryList classified={classifiedPosts} />
     </div>
   );
@@ -23,7 +23,7 @@ function CategoryList({ classified }: { classified: { category: string; posts: P
         return (
           <Link key={index} href={`/posts?category=${post.category}`}>
             <div className="pb-2 pt-2">
-              <span>{post.category.toUpperCase()}</span>
+              <span className="text-primary-color">{post.category.toUpperCase()}</span>
             </div>
           </Link>
         );

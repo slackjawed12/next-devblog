@@ -18,7 +18,7 @@ function RecentPosts() {
   const copiedPost = allPosts.slice();
   return (
     <div className="flex-1">
-      <div className="text-center">최근 게시물</div>
+      <div className="text-primary-color text-center">최근 게시물</div>
       {copiedPost
         .sort((o1, o2) => compareDesc(o1.createdAt, o2.createdAt))
         .map((post, i) => {

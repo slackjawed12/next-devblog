@@ -1,7 +1,7 @@
-import Link from "next/link";
-import { BLOG_START_YEAR } from "src/config/constants";
-import GithubIcon from "./icons/GithubIcon";
-import LinkedinIcon from "./icons/LinkedinIcon";
+import Link from 'next/link';
+import { BLOG_START_YEAR } from 'src/config/constants';
+import GithubIcon from './icons/GithubIcon';
+import LinkedinIcon from './icons/LinkedinIcon';
 
 export default function Footer() {
   const yearRange = () => {
@@ -10,8 +10,8 @@ export default function Footer() {
   };
 
   return (
-    <footer className="py-5 relative translate-y-full">
-      <div className="flex flex-row space-x-2 mb-1">
+    <footer className="relative translate-y-full py-5">
+      <div className="mb-1 flex flex-row space-x-2">
         <a href="https://github.com/slackjawed12">
           <GithubIcon />
         </a>
@@ -20,11 +20,11 @@ export default function Footer() {
         </a>
       </div>
       <div className="flex justify-start">
-        <Link href={"/"} className="text-sm sm:text-base">
+        <Link href={'/'} className="text-primary-color text-sm sm:text-base">
           © {yearRange()} Lee MinJae blog&nbsp;
         </Link>
-        <span className="text-sm sm:text-base">Powered By&nbsp;</span>
-        <span className="text-sm sm:text-base">Next.js</span>
+        <span className="text-primary-color text-sm sm:text-base">Powered By&nbsp;</span>
+        <span className="text-primary-color text-sm sm:text-base">Next.js</span>
       </div>
     </footer>
   );

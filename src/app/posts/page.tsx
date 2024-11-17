@@ -33,7 +33,7 @@ function CategoryPosts({ category }: { category?: string }) {
 
       return (
         <div className="flex-1">
-          <div className="text-center">{category} 관련 게시물</div>
+          <p className="text-primary-color text-center">{category} 관련 게시물</p>
           {targetPosts
             .sort((o1, o2) => compareDesc(o1.createdAt, o2.createdAt))
             .map((post, i) => {
@@ -46,7 +46,7 @@ function CategoryPosts({ category }: { category?: string }) {
 
   return (
     <div className="flex-1">
-      <div className="text-center">최근 게시물</div>
+      <p className="text-primary-color text-center">최근 게시물</p>
       {copiedPost
         .sort((o1, o2) => compareDesc(o1.createdAt, o2.createdAt))
         .map((post, i) => {
