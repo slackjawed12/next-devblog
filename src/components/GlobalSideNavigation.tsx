@@ -3,6 +3,7 @@
 import { allPosts, Post } from 'contentlayer/generated';
 import Link from 'next/link';
 import { classifyByCategory } from 'src/util/classifier';
+import BoldCenterText from './text/BoldCenterText';
 
 export default function GlobalSideNavigation() {
   const classifiedPosts = classifyByCategory(allPosts);
@@ -10,7 +11,9 @@ export default function GlobalSideNavigation() {
 
   return (
     <div className="mr-6 hidden flex-col md:flex">
-      <span className="text-primary-color mb-8 text-center">주제별 카테고리</span>
+      <div className="mb-8">
+        <BoldCenterText content="주제별 카테고리" />
+      </div>
       <CategoryList classified={classifiedPosts} />
     </div>
   );
@@ -23,7 +26,9 @@ function CategoryList({ classified }: { classified: { category: string; posts: P
         return (
           <Link key={index} href={`/posts?category=${post.category}`}>
             <div className="pb-2 pt-2">
-              <span className="text-primary-color">{post.category.toUpperCase()}</span>
+              <span className="text-primary-color font-semibold">
+                {post.category.toUpperCase()}
+              </span>
             </div>
           </Link>
         );
